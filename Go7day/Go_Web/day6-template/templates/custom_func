@@ -1,0 +1,11 @@
+<html>
+    <link rel="stylesheet" href="/assets/css/geektutu.css">
+    <p>geektutu.css is loaded</p>
+</html>%                                                                                                 (base) cgs@cgsdeMacBook-Pro templates % cat custom_func.tmpl
+<!-- templates/arr.tmpl -->
+<html>
+<body>
+    <p>hello, {{.title}}</p>
+    <p>Date: {{.now | FormatAsDate}}</p>
+</body>
+</html>
