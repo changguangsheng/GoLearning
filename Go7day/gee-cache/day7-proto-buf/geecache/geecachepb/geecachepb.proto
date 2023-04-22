@@ -1,0 +1,15 @@
+syntax = "proto3";
+package geecachepb;
+option go_package = "./"; // 指定生成的go文件所在path
+//    Request 包含 2 个字段， group 和 cache，这与我们之前定义的接口
+message Request{
+  string group = 1;
+  string key = 2;
+}
+//    Response 包含 1 个字段，bytes，类型为 byte 数组
+message Response{
+  bytes value = 1;
+}
+service GroupCache{
+  rpc Get(Request) returns (Response);
+}
