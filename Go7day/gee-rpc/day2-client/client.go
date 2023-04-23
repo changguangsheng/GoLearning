@@ -19,7 +19,8 @@ type Call struct {
 	Seq           uint64
 	ServiceMethod string
 	Args          interface{}
-	Reply         error
+	Reply         interface{}
+	Error         error
 	Done          chan *Call
 }
 
@@ -58,12 +59,41 @@ func (client *Client) IsAvailable() bool {
 	defer client.mu.Unlock()
 	return !client.shutdown && !client.closing
 }
-
+//将参数 call 添加到 client.pending 中，并更新 client.seq。
 func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	if client.closing || client.shutdown {
 		return 0, ErrShutdown
 	}
-	
+	call.Seq = client.seq
+	client.pending[call.Seq] = call
+	client.seq++
+	return call.Seq, nil
+}
+//根据 seq，从 client.pending 中移除对应的 call，并返回。
+func (client *Client) removeCall(seq uint64) *Call {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	call := client.pending[seq]
+	delete(client.pending, seq)
+	return call
+}
+//服务端或客户端发生错误时调用，将 shutdown 设置为 true，且将错误信息通知所有 pending 状态的 call。
+func (client *Client) terminateCalls(err error) {
+	client.sending.Lock()
+	defer client.sending.Unlock()
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	for _, call := range client.pending {
+		call.Error = err
+		call.done()
+	}
+}
+
+func (client *Client) receive() {
+	var err error
+	for err == nil{
+		var 
+	}
 }
