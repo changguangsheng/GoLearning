@@ -11,11 +11,10 @@ import (
 )
 
 type Foo int
-
 type Args struct{ Num1, Num2 int }
 
 func (f Foo) Sum(args Args, reply *int) error {
-	*reply = args.Num1 + args.Num2
+	*reply = args.Num2 + args.Num1
 	return nil
 }
 
@@ -33,7 +32,7 @@ func call(addrCh chan string) {
 	defer func() { _ = client.Close() }()
 
 	time.Sleep(time.Second)
-	// send request & receive response
+	//send request & receive response
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
@@ -44,7 +43,6 @@ func call(addrCh chan string) {
 			if err := client.Call(context.Background(), "Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
 			}
-			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
 		}(i)
 	}
 	wg.Wait()

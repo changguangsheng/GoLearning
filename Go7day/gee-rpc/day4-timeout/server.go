@@ -27,6 +27,7 @@ type Option struct {
 	HandleTimeout  time.Duration
 }
 
+// 将超时设定放在了 Option 中。ConnectTimeout 默认值为 10s，HandleTimeout 默认值为 0，即不设限。
 var DefaultOption = &Option{
 	MagicNumber:    MagicNumber,
 	CodecType:      codec.GobType,
@@ -84,7 +85,7 @@ func (server *Server) serveCodec(cc codec.Codec, opt *Option) {
 			continue
 		}
 		wg.Add(1)
-		go server.handleRequest(cc, req, sending, wg, opt.HandleTimeout)
+		go server.handleRequest(cc, req, sending, wg, opt.ConnectTimeout)
 	}
 	wg.Wait()
 	_ = cc.Close()
@@ -162,6 +163,12 @@ func (server *Server) sendResponse(cc codec.Codec, h *codec.Header, body interfa
 	}
 }
 
+/*
+sendResponse 仅调用一次，因此将整个过程拆分为 called 和 sent 两个阶段，在这段代码中只会发生如下两种情况：
+
+called 信道接收到消息，代表处理没有超时，继续执行 sendResponse。
+time.After() 先于 called 接收到消息，说明处理已经超时，called 和 sent 都将被阻塞。在 case <-time.After(timeout) 处调用 sendResponse。
+*/
 func (server *Server) handleRequest(cc codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup, timeout time.Duration) {
 	defer wg.Done()
 	called := make(chan struct{})
@@ -188,6 +195,7 @@ func (server *Server) handleRequest(cc codec.Codec, req *request, sending *sync.
 	case <-time.After(timeout):
 		req.h.Error = fmt.Sprintf("rpc server: request handle timeout: expect within %s", timeout)
 		server.sendResponse(cc, req.h, invalidRequest, sending)
+		return
 	case <-called:
 		<-sent
 	}
@@ -212,10 +220,10 @@ func Accept(lis net.Listener) { DefaultServer.Accept(lis) }
 
 // Register publishes in the server the set of methods of the
 // receiver value that satisfy the following conditions:
-//	- exported method of exported type
-//	- two arguments, both of exported type
-//	- the second argument is a pointer
-//	- one return value, of type error
+//   - exported method of exported type
+//   - two arguments, both of exported type
+//   - the second argument is a pointer
+//   - one return value, of type error
 func (server *Server) Register(rcvr interface{}) error {
 	s := newService(rcvr)
 	if _, dup := server.serviceMap.LoadOrStore(s.name, s); dup {

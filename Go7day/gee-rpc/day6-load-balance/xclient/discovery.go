@@ -11,27 +11,29 @@ import (
 type SelectMode int
 
 const (
-	RandomSelect     SelectMode = iota // select randomly
-	RoundRobinSelect                   // select using Robbin algorithm
+	RandomSelect     SelectMode = iota //随机选择
+	RoundRobinSelect                   //选择轮训算法
 )
 
 type Discovery interface {
-	Refresh() error // refresh from remote registry
-	Update(servers []string) error
-	Get(mode SelectMode) (string, error)
-	GetAll() ([]string, error)
+	Refresh() error                      //从注册中心更新服务列表
+	Update(servers []string) error       //手动更新服务列表
+	Get(mode SelectMode) (string, error) //根据负载均衡策略，选择一个服务实例
+	GetAll() ([]string, error)           //返回所有的服务实例
 }
-
-var _ Discovery = (*MultiServersDiscovery)(nil)
 
 // MultiServersDiscovery is a discovery for multi servers without a registry center
 // user provides the server addresses explicitly instead
+// 实现一个不需要注册中心，服务列表由手工维护的服务发现的结构体：MultiServersDiscovery
 type MultiServersDiscovery struct {
-	r       *rand.Rand   // generate random number
-	mu      sync.RWMutex // protect following
+	r       *rand.Rand   //生成随机数
+	mu      sync.RWMutex // protect fllowing
 	servers []string
-	index   int // record the selected position for robin algorithm
+	index   int //记录轮询算法的轮询的位置
 }
+
+// 实现 Discovery 接口  类型断言,用来判断 MultiServersDiscovery是否实现了Discovery
+var _ Discovery = (*MultiServersDiscovery)(nil)
 
 // Refresh doesn't make sense for MultiServersDiscovery, so ignore it
 func (d *MultiServersDiscovery) Refresh() error {
@@ -68,9 +70,9 @@ func (d *MultiServersDiscovery) Get(mode SelectMode) (string, error) {
 
 // returns all servers in discovery
 func (d *MultiServersDiscovery) GetAll() ([]string, error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	// return a copy of d.servers
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	//返回d.servers 的复制
 	servers := make([]string, len(d.servers), len(d.servers))
 	copy(servers, d.servers)
 	return servers, nil

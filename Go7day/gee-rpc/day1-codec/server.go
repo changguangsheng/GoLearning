@@ -35,7 +35,6 @@ func NewServer() *Server {
 	return &Server{}
 }
 
-// GeeRPC 客户端固定采用 JSON 编码 Option
 // DefaultServer is the default instance of *Server.
 var DefaultServer = NewServer()
 
@@ -63,17 +62,12 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 // invalidRequest is a placeholder for response argv when error occurs
 var invalidRequest = struct{}{}
 
-/*
-serveCodec 的过程非常简单。主要包含三个阶段:
-读取请求 readRequest
-处理请求 handleRequest
-回复请求 sendResponse
-*/
 func (server *Server) serveCodec(cc codec.Codec) {
 	sending := new(sync.Mutex) // make sure to send a complete response
 	wg := new(sync.WaitGroup)  // wait until all request are handled
 	for {
 		req, err := server.readRequest(cc)
+		log.Println("req", req.h, req.replyv)
 		if err != nil {
 			if req == nil {
 				break // it's not possible to recover, so close the connection
@@ -138,8 +132,6 @@ func (server *Server) handleRequest(cc codec.Codec, req *request, sending *sync.
 	server.sendResponse(cc, req.h, req.replyv.Interface(), sending)
 }
 
-// 实现了 Accept 方式，net.Listener 作为参数，for 循环等待 socket 连接建立，
-// 并开启子协程处理，处理过程交给了 ServerConn 方法。
 // Accept accepts connections on the listener and serves requests
 // for each incoming connection.
 func (server *Server) Accept(lis net.Listener) {

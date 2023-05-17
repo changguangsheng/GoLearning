@@ -8,13 +8,10 @@ import (
 )
 
 type GobCodec struct {
-	//conn 是由构建函数传入，通常是通过 TCP 或者 Unix 建立 socket 时得到的链接实例
 	conn io.ReadWriteCloser
-	//buf 是为了防止阻塞而创建的带缓冲的 Writer，一般这么做能提升性能。
-	buf *bufio.Writer
-	//dec 和 enc 对应 gob 的 Decoder 和 Encoder，
-	dec *gob.Decoder
-	enc *gob.Encoder
+	buf  *bufio.Writer
+	dec  *gob.Decoder
+	enc  *gob.Encoder
 }
 
 var _ Codec = (*GobCodec)(nil)
@@ -44,15 +41,15 @@ func (c *GobCodec) Write(h *Header, body interface{}) (err error) {
 			_ = c.Close()
 		}
 	}()
-	if err := c.enc.Encode(h); err != nil {
-		log.Println("rpc codec: gob error encoding header:", err)
-		return err
+	if err = c.enc.Encode(h); err != nil {
+		log.Println("rpc: gob error encoding header:", err)
+		return
 	}
-	if err := c.enc.Encode(body); err != nil {
-		log.Println("rpc codec: gob error encoding body:", err)
-		return err
+	if err = c.enc.Encode(body); err != nil {
+		log.Println("rpc: gob error encoding body:", err)
+		return
 	}
-	return nil
+	return
 }
 
 func (c *GobCodec) Close() error {

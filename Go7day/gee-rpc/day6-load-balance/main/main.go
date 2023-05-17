@@ -33,7 +33,6 @@ func startServer(addrCh chan string) {
 	addrCh <- l.Addr().String()
 	server.Accept(l)
 }
-
 func foo(xc *xclient.XClient, ctx context.Context, typ, serviceMethod string, args *Args) {
 	var reply int
 	var err error
@@ -49,7 +48,6 @@ func foo(xc *xclient.XClient, ctx context.Context, typ, serviceMethod string, ar
 		log.Printf("%s %s success: %d + %d = %d", typ, serviceMethod, args.Num1, args.Num2, reply)
 	}
 }
-
 func call(addr1, addr2 string) {
 	d := xclient.NewMultiServerDiscovery([]string{"tcp@" + addr1, "tcp@" + addr2})
 	xc := xclient.NewXClient(d, xclient.RandomSelect, nil)
